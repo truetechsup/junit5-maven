@@ -9,9 +9,6 @@ jobs:
     name: Create tests filter (Python)
     runs-on: ubuntu-latest
     
-    outputs:
-      filter-file: ${{ steps.filter.outputs.filter-file }}
-    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -24,15 +21,7 @@ jobs:
     - name: Install testit-cli
       run: pip install testit-cli
     
-    - name: Get data from webhook
-      id: webhook-data
-      run: |
-        echo "TEST_RUN_ID=${{ github.event.client_payload.test_run_id }}"
-        echo "PROJECT_ID=${{ github.event.client_payload.project_id }}"
-        echo "CONFIGURATION_IDS=${{ github.event.client_payload.configuration_id[0] }}"
-    
     - name: Create tests filter
-      id: filter
       run: |
         export TMS_TOKEN=${{ secrets.TMS_PRIVATE_TOKEN }}
         testit autotests_filter \
@@ -42,11 +31,11 @@ jobs:
           --framework maven-junit5 \
           --output tmp/filter.txt
         
-        # Сохраняем путь к файлу для следующей джобы
-        echo "filter-file=tmp/filter.txt" >> $GITHUB_OUTPUT
+        # Преобразуем формат для Maven
+        sed -i 's/\./#/g' tmp/filter.txt
+        sed -i 's/^/-Dtest=/' tmp/filter.txt
         
-        # Показываем содержимое фильтра для отладки
-        echo "Filter content:"
+        echo "Modified filter content:"
         cat tmp/filter.txt
     
     - name: Upload filter artifact
@@ -59,7 +48,7 @@ jobs:
   run-tests:
     name: Run JUnit5 tests (Java)
     runs-on: ubuntu-latest
-    needs: create-filter 
+    needs: create-filter
     
     steps:
     - name: Checkout code
@@ -82,22 +71,17 @@ jobs:
       run: |
         echo "Filter file content:"
         cat tmp/filter.txt
-        echo "Test command that will be executed:"
-        echo "mvn test -DtmsTestRunId=${{ github.event.client_payload.test_run_id }} -DtmsAdapterMode=1 \$(cat tmp/filter.txt)"
     
     - name: Run filtered tests
       run: |
+        # Читаем фильтр и выполняем тесты
+        FILTER_CONTENT=$(cat tmp/filter.txt)
+        echo "Running: mvn test $FILTER_CONTENT"
+        
         mvn test \
           -DtmsTestRunId=${{ github.event.client_payload.test_run_id }} \
           -DtmsAdapterMode=1 \
           -Dtms.privateToken=${{ secrets.TMS_PRIVATE_TOKEN }} \
           -Dtms.url=${{ secrets.TMS_URL }} \
-          $(cat tmp/filter.txt)
-    
-    - name: Test results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-reports
-        path: target/surefire-reports/
-        retention-days: 7
+          $(cat tmp/filter.txt) \
+          -Dsurefire.failIfNoSpecifiedTests=false
