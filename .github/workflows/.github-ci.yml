@@ -1,0 +1,39 @@
+name: JUnit5 Maven 
+
+on:
+  repository_dispatch:
+    types: [run-tests]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up JDK
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: 'maven'
+        
+    - name: Install dependencies
+      run: mvn dependency:resolve
+    
+    - name: Get data from webhook
+      run: |
+        echo "TEST_RUN_ID=${{ github.event.client_payload.test_run_id }}" >> $GITHUB_ENV
+        echo "PROJECT_ID=${{ github.event.client_payload.project_id }}" >> $GITHUB_ENV
+        echo "CONFIGURATION_IDS=${{ github.event.client_payload.configuration_id[0] }}" >> $GITHUB_ENV
+    
+    - name: Run tests with JUnit5
+      run: |
+        mvn test \
+          -Dtms.configurationId=$CONFIGURATION_IDS \
+          -Dtms.projectId=$PROJECT_ID \
+          -Dtms.privateToken=${{ secrets.TMS_PRIVATE_TOKEN }} \
+          -Dtms.url=${{ secrets.TMS_URL }} \
+          -Dtms.testRunId=$TEST_RUN_ID \
+          -Dtms.adapterMode=0 \
+          -Dtms.certValidation=false
