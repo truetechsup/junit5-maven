@@ -34,9 +34,6 @@ jobs:
           -DtmsConfigurationId=$CONFIGURATION_IDS \
           -DtmsAdapterMode=0 \
           -DtmsTestRunId=$TEST_RUN_ID \
-          -DtmsTestRunName=Regress \
-          -DtmsAutomaticCreationTestCases=true \
-          -DtmsAutomaticUpdationLinksToTestCases=true \
           -DtmsCertValidation=true \
           -DtmsImportRealtime=true \
           -DtmsTestIt=true
