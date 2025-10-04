@@ -31,14 +31,34 @@ jobs:
           --framework maven-junit5 \
           --output tmp/filter.txt
         
-        echo "Filter content:"
+        echo "Original filter content:"
         cat tmp/filter.txt
+        
+        # Преобразуем каждый тест в формат ClassName#methodName
+        while IFS= read -r test; do
+          if [[ ! -z "$test" ]]; then
+            # Извлекаем ClassName и methodName
+            class_name=$(echo "$test" | sed 's/.*\.\([^.]*\)\.[^.]*$/\1/')
+            method_name=$(echo "$test" | sed 's/.*\.//')
+            echo "-Dtest=${class_name}#${method_name}" >> tmp/maven_filter.txt
+          fi
+        done < tmp/filter.txt
+        
+        # Объединяем все в одну строку
+        if [[ -f tmp/maven_filter.txt ]]; then
+          cat tmp/maven_filter.txt | tr '\n' ' ' > tmp/final_filter.txt
+          echo "Final Maven filter:"
+          cat tmp/final_filter.txt
+        else
+          echo "No tests found in filter"
+          echo "" > tmp/final_filter.txt
+        fi
     
     - name: Upload filter artifact
       uses: actions/upload-artifact@v4
       with:
         name: test-filter
-        path: tmp/filter.txt
+        path: tmp/final_filter.txt
         retention-days: 1
 
   run-tests:
