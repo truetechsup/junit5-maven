@@ -27,4 +27,16 @@ jobs:
 
     - name: Run tests
       run: |
-        mvn test -DtmsUrl=${{ secrets.TMS_URL }} -DtmsPrivateToken=${{ secrets.TMS_PRIVATE_TOKEN }} -DtmsProjectId=$PROJECT_ID -DtmsConfigurationId=$CONFIGURATION_IDS -DtmsAdapterMode=0 -DtmsTestRunId=$TEST_RUN_ID -DtmsTestRunName=Regress -DtmsAutomaticCreationTestCases=true -DtmsAutomaticUpdationLinksToTestCases=true -DtmsCertValidation=true -DtmsImportRealtime=true -DtmsTestIt=true
+        mvn test \
+          -DtmsUrl=${{ secrets.TMS_URL }} \
+          -DtmsPrivateToken=${{ secrets.TMS_PRIVATE_TOKEN }} \
+          -DtmsProjectId=$PROJECT_ID \
+          -DtmsConfigurationId=$CONFIGURATION_IDS \
+          -DtmsAdapterMode=0 \
+          -DtmsTestRunId=$TEST_RUN_ID \
+          -DtmsTestRunName=Regress \
+          -DtmsAutomaticCreationTestCases=true \
+          -DtmsAutomaticUpdationLinksToTestCases=true \
+          -DtmsCertValidation=true \
+          -DtmsImportRealtime=true \
+          -DtmsTestIt=true
