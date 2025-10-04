@@ -31,9 +31,7 @@ jobs:
           --framework maven-junit5 \
           --output tmp/filter.txt
         
-        # Преобразуем формат для Maven (убираем лишние -Dtest=)
-        sed -i 's/\./#/g' tmp/filter.txt
-        echo "Original filter content:"
+        echo "Filter content:"
         cat tmp/filter.txt
     
     - name: Upload filter artifact
@@ -72,14 +70,10 @@ jobs:
     
     - name: Run filtered tests
       run: |
-        # Читаем фильтр и формируем правильную команду
-        FILTER_CONTENT=$(cat tmp/filter.txt | tr -d '\n')
-        echo "Filter: $FILTER_CONTENT"
-        
+        # Правильная команда как в примере документации
         mvn test \
           -DtmsTestRunId=${{ github.event.client_payload.test_run_id }} \
           -DtmsAdapterMode=1 \
           -Dtms.privateToken=${{ secrets.TMS_PRIVATE_TOKEN }} \
           -Dtms.url=${{ secrets.TMS_URL }} \
-          -Dtest="$FILTER_CONTENT" \
-          -Dsurefire.failIfNoSpecifiedTests=false
+          $(cat tmp/filter.txt)
