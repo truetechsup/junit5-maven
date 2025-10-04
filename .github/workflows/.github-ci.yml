@@ -5,95 +5,26 @@ on:
     types: [run-tests]
 
 jobs:
-  create-filter:
-    name: Create tests filter (Python)
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-    
-    - name: Install testit-cli
-      run: pip install testit-cli
-    
-    - name: Create tests filter
-      run: |
-        export TMS_TOKEN=${{ secrets.TMS_PRIVATE_TOKEN }}
-        testit autotests_filter \
-          --url ${{ secrets.TMS_URL }} \
-          --configuration-id ${{ github.event.client_payload.configuration_id[0] }} \
-          --testrun-id ${{ github.event.client_payload.test_run_id }} \
-          --framework maven-junit5 \
-          --output tmp/filter.txt
-        
-        echo "Original filter content:"
-        cat tmp/filter.txt
-        
-        # Преобразуем каждый тест в формат ClassName#methodName
-        while IFS= read -r test; do
-          if [[ ! -z "$test" ]]; then
-            # Извлекаем ClassName и methodName
-            class_name=$(echo "$test" | sed 's/.*\.\([^.]*\)\.[^.]*$/\1/')
-            method_name=$(echo "$test" | sed 's/.*\.//')
-            echo "-Dtest=${class_name}#${method_name}" >> tmp/maven_filter.txt
-          fi
-        done < tmp/filter.txt
-        
-        # Объединяем все в одну строку
-        if [[ -f tmp/maven_filter.txt ]]; then
-          cat tmp/maven_filter.txt | tr '\n' ' ' > tmp/final_filter.txt
-          echo "Final Maven filter:"
-          cat tmp/final_filter.txt
-        else
-          echo "No tests found in filter"
-          echo "" > tmp/final_filter.txt
-        fi
-    
-    - name: Upload filter artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-filter
-        path: tmp/final_filter.txt
-        retention-days: 1
-
   run-tests:
     name: Run JUnit5 tests (Java)
     runs-on: ubuntu-latest
-    needs: create-filter
-    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
-    - name: Download filter artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: test-filter
-        path: tmp/
-    
+
     - name: Set up JDK 17
       uses: actions/setup-java@v3
       with:
         java-version: '17'
         distribution: 'temurin'
         cache: 'maven'
-    
-    - name: Show filter content
+
+    - name: Get data from webhook
       run: |
-        echo "Filter file content:"
-        cat tmp/filter.txt
-    
-    - name: Run filtered tests
+        echo "TEST_RUN_ID=${{ github.event.client_payload.test_run_id }}" >> $GITHUB_ENV
+        echo "PROJECT_ID=${{ github.event.client_payload.project_id }}" >> $GITHUB_ENV
+        echo "CONFIGURATION_IDS=${{ github.event.client_payload.configuration_id[0] }}" >> $GITHUB_ENV
+
+    - name: Run tests
       run: |
-        # Правильная команда как в примере документации
-        mvn test \
-          -DtmsTestRunId=${{ github.event.client_payload.test_run_id }} \
-          -DtmsAdapterMode=1 \
-          -Dtms.privateToken=${{ secrets.TMS_PRIVATE_TOKEN }} \
-          -Dtms.url=${{ secrets.TMS_URL }} \
-          $(cat tmp/filter.txt)
+        maven test -DtmsUrl=${{ secrets.TMS_URL }} -DtmsPrivateToken=${{ secrets.TMS_PRIVATE_TOKEN }} -DtmsProjectId=$PROJECT_ID -DtmsConfigurationId=$CONFIGURATION_IDS -DtmsAdapterMode=0 -DtmsTestRunId=$TEST_RUN_ID -DtmsTestRunName=Regress -DtmsAutomaticCreationTestCases=true -DtmsAutomaticUpdationLinksToTestCases=true -DtmsCertValidation=true -DtmsImportRealtime=true -DtmsTestIt=true
