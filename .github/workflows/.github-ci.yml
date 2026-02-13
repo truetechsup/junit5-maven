@@ -37,6 +37,7 @@ jobs:
           -DtmsConfigurationId=$CONFIGURATION_IDS \
           -DtmsAdapterMode=0 \
           -DtmsTestRunId=$TEST_RUN_ID \
+          -DtmsTestRunName="Запуск выбранных автотестов" \
           -DtmsCertValidation=false \
           -DtmsImportRealtime=true \
           -DtmsTestIt=true
@@ -50,6 +51,8 @@ jobs:
           -DtmsProjectId=$PROJECT_ID \
           -DtmsConfigurationId=$CONFIGURATION_IDS \
           -DtmsAdapterMode=2 \
+          -DtmsTestRunId=$TEST_RUN_ID \
+          -DtmsTestRunName="Запуск всех автотестов" \
           -DtmsCertValidation=false \
           -DtmsImportRealtime=true \
           -DtmsTestIt=true
