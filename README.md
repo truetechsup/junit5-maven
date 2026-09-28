@@ -1,21 +1,55 @@
-# Maven-JUnit5 example
-Example of tests with JUnit5 framework and adapter for Test IT of a Maven project
+# JUnit5 + Maven + Test IT + GitHub Actions
 
-## Setup
+Пример автотестов на JUnit5 (Maven), которые запускаются из Test IT через GitHub Actions и отправляют результаты обратно в Test IT с помощью [testit-adapter-junit5](https://github.com/testit-tms/adapters-java/tree/main/testit-adapter-junit5).
 
-1. Install [Java 8](https://www.oracle.com/java/technologies/javase/javase8-archive-downloads.html)
-2. Install [Maven](https://maven.apache.org/download.cgi)
-3. Clone this repository `git clone https://github.com/testit-tms/java-examples.git && cd maven-junit5`
-4. Configure the tests to run in **testit.properties** file. [How to configure?](https://github.com/testit-tms/adapters-java/tree/main/testit-adapter-junit5#configuration)
-5. Run tests via `mvn test` to upload the results to TMS
+**Проект в Test IT:** [team-0tm5.testit.software/projects/259/autotests](https://team-0tm5.testit.software/projects/259/autotests)
 
-## Project structure
+## Как это работает
 
-* **src/test/java/examples/** – test files
-    * **AnnotationTests.java** – simple test examples with [annotations testit-adapter-junit5](https://github.com/testit-tms/adapters-java/tree/main/testit-adapter-junit5#annotations)
-    * **MethodTests.java** – simple test examples with [methods testit-adapter-junit5](https://github.com/testit-tms/adapters-java/tree/main/testit-adapter-junit5#annotations)
-    * **StepsTests.java** – simple test examples with [steps testit-adapter-junit5](https://github.com/testit-tms/adapters-java/tree/main/testit-adapter-junit5#annotations)
-* **src/test/resources/** – resource files for tests
-    * **attachments/** - attachment files for tests
-    * **testit.properties** - configuration file where specified base options for tests
-* **pom.xml** - [XML representation](https://maven.apache.org/pom.html) of a Maven project
+1. Test IT отправляет webhook в GitHub — событие `repository_dispatch` с типом `run-tests`.
+2. Запускается workflow [.github/workflows/.github-ci.yml](.github/workflows/.github-ci.yml).
+3. Тесты выполняются через `mvn test`, результаты загружаются в Test IT.
+4. К прогону в Test IT прикрепляется ссылка на пайплайн GitHub Actions (`actions/runs/<run_id>`).
+
+Версия адаптера в [pom.xml](pom.xml) задана как `RELEASE`, поэтому всегда подтягивается последний релиз из Maven Central.
+
+### Режимы запуска
+
+Режим задаётся полем `adapter_mode` в webhook.
+
+| `adapter_mode` | Что происходит | Имя прогона |
+|---|---|---|
+| `0` | Результаты пишутся в существующий прогон, `test_run_id` берётся из webhook. Sync-storage запускается в workflow. | `GitHub Actions #<run_number> (adapterMode=0)` |
+| `2` | Адаптер сам создаёт новый прогон, `test_run_id` не передаётся. | `GitHub Actions #<run_number> (adapterMode=2)` |
+
+### Данные из webhook
+
+```json
+{
+  "event_type": "run-tests",
+  "client_payload": {
+    "adapter_mode": "0",
+    "url": "https://team-0tm5.testit.software",
+    "project_id": "<id проекта>",
+    "configuration_id": ["<id конфигурации>"],
+    "test_run_id": "<id прогона, только для adapter_mode=0>"
+  }
+}
+```
+
+### Секреты репозитория
+
+| Секрет | Назначение |
+|---|---|
+| `TMS_PRIVATE_TOKEN` | Приватный токен пользователя Test IT |
+
+## Структура проекта
+
+* **.github/workflows/.github-ci.yml** – workflow запуска тестов по webhook из Test IT
+* **src/test/java/examples/** – тесты
+    * **AnnotationTests.java** – примеры [аннотаций testit-adapter-junit5 (→ github.com)](https://github.com/testit-tms/adapters-java/tree/main/testit-adapter-junit5#annotations)
+    * **MethodTests.java** – примеры [методов testit-adapter-junit5 (→ github.com)](https://github.com/testit-tms/adapters-java/tree/main/testit-adapter-junit5#annotations)
+    * **StepsTests.java** – примеры [шагов testit-adapter-junit5 (→ github.com)](https://github.com/testit-tms/adapters-java/tree/main/testit-adapter-junit5#annotations)
+* **src/test/resources/** – ресурсы для тестов
+    * **attachments/** – файлы вложений
+* **pom.xml** – [описание Maven-проекта (→ maven.apache.org)](https://maven.apache.org/pom.html)
