@@ -13,13 +13,21 @@
 
 Версия адаптера в [pom.xml](pom.xml) задана как `RELEASE`, поэтому всегда подтягивается последний релиз из Maven Central.
 
+### Sync-storage
+
+В обоих режимах вместе с тестами запускается [sync-storage](https://github.com/testit-tms/sync-storage-public) (порт `49152`):
+
+* запускается с `TMS_SYNC_STORAGE_AUTOCOMPLETE_FALLBACK_S=600`, чтобы результат автотеста, который он удерживает «в процессе», всё равно был применён;
+* после тестов workflow вызывает `wait-completion`, ждёт применения всех результатов и только затем останавливает sync-storage;
+* лог sync-storage (`service.log`) сохраняется в артефакт `syncstorage-log` на 1 день.
+
 ### Режимы запуска
 
 Режим задаётся полем `adapter_mode` в webhook.
 
 | `adapter_mode` | Что происходит | Имя прогона |
 |---|---|---|
-| `0` | Результаты пишутся в существующий прогон, `test_run_id` берётся из webhook. Sync-storage запускается в workflow. | `GitHub Actions #<run_number> (adapterMode=0)` |
+| `0` | Результаты пишутся в существующий прогон, `test_run_id` берётся из webhook. | `GitHub Actions #<run_number> (adapterMode=0)` |
 | `2` | Адаптер сам создаёт новый прогон, `test_run_id` не передаётся. | `GitHub Actions #<run_number> (adapterMode=2)` |
 
 ### Данные из webhook
